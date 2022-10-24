@@ -1,6 +1,14 @@
 {
     "files.associations": {
         "module.h": "c",
-        "gpio-omap.h": "c"
+        "gpio-omap.h": "c",
+        "chrono": "c",
+        "algorithm": "c",
+        "omap34xx.h": "c",
+        "cdev.h": "c",
+        "kobject.h": "c",
+        "sysfs.h": "c",
+        "kernfs.h": "c",
+        "idr.h": "c"
     }
 }
