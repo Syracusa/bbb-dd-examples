@@ -54,17 +54,16 @@ ssize_t gpio_ex_read(struct file* filp,
                      size_t count,
                      loff_t* fpos)
 {
-    struct gpio_ex_data *drv_data; 
     u32 reg_state;
+#if 0
+    struct gpio_ex_data *drv_data; 
 
     if (count < sizeof(reg_state))
         return -EFAULT;
 
     drv_data = (struct gpio_ex_data *) filp->private_data;
-
-    readl(BBB_GPIO0_IN, &drv_data);
-
-    reg_state =  *((volatile u32 __force*)BBB_GPIO0_IN);
+#endif
+    readl(BBB_GPIO0_IN, &reg_state);
     
     if (copy_to_user(ubuf, &reg_state, sizeof(u32)))
         return -EFAULT;
