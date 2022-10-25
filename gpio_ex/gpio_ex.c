@@ -24,8 +24,6 @@ MODULE_LICENSE("GPL");
 struct gpio_ex_data
 {
     struct cdev cdev;
-    /* my data starts here */
-    //...
 };
 
 struct gpio_ex_data devs[GPIO_EX_MAX_MINORS];
@@ -63,6 +61,9 @@ ssize_t gpio_ex_read(struct file* filp,
         return -EFAULT;
 
     drv_data = (struct gpio_ex_data *) filp->private_data;
+
+    readl(BBB_GPIO0_IN, &drv_data);
+
     reg_state =  *((volatile u32 __force*)BBB_GPIO0_IN);
     
     if (copy_to_user(ubuf, &reg_state, sizeof(u32)))
