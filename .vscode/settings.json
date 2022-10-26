@@ -9,6 +9,7 @@
         "kobject.h": "c",
         "sysfs.h": "c",
         "kernfs.h": "c",
-        "idr.h": "c"
+        "idr.h": "c",
+        "memory": "c"
     }
 }

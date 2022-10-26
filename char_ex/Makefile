@@ -1,4 +1,4 @@
-obj-m := gpio_ex.o
+obj-m := char_ex.o
 
 KERNELDIR ?= /home/kj/dev/linux
 PWD := $(shell pwd)
