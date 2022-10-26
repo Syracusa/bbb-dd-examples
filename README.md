@@ -7,8 +7,8 @@
 
 
 ## GPIO example(./gpio_ex, ongoing)
- - Beaglebone black gpio control example(Charactor device driver).
+ - Beaglebone black gpio control example(Character device driver).
  - No kernel gpio interface used.
 
-## Charactor device driver example(./char_ex/)
- - Simple charactor device driver example that read/write to kernel memory.
+## Character device driver example(./char_ex/)
+ - Simple Character device driver example that read/write to kernel memory.
