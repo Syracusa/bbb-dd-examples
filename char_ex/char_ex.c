@@ -106,7 +106,6 @@ static void char_ex_exit(void)
 
     for (i = 0; i < CHAR_EX_MAX_MINORS; i++)
     {
-        /* release devs[i] fields */
         cdev_del(&devs[i].cdev);
     }
     unregister_chrdev_region(MKDEV(CHAR_EX_MAJOR, 0),
@@ -129,8 +128,6 @@ static int char_ex_init(void)
     err = register_chrdev_region(MKDEV(CHAR_EX_MAJOR, 0),
                                  CHAR_EX_MAX_MINORS,
                                  "char_example_driver");
-
-
     if (err != 0)
     {
         return err;
@@ -139,8 +136,6 @@ static int char_ex_init(void)
     for (i = 0; i < CHAR_EX_MAX_MINORS; i++)
     {
         devs[i].offset = 0;
-
-        /* initialize devs[i] fields */
         cdev_init(&devs[i].cdev, &char_ex_fops);
         cdev_add(&devs[i].cdev, MKDEV(CHAR_EX_MAJOR, i), 1);
     }

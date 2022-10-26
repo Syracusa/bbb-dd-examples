@@ -100,10 +100,8 @@ static void gpio_ex_exit(void)
     printk(KERN_NOTICE "BBB GPIO TESTDRV EXIT\n");
 
     for (i = 0; i < GPIO_EX_MAX_MINORS; i++)
-    {
-        /* release devs[i] fields */
         cdev_del(&devs[i].cdev);
-    }
+    
     unregister_chrdev_region(MKDEV(GPIO_EX_MAJOR, 0),
                              GPIO_EX_MAX_MINORS);
 }
@@ -117,13 +115,10 @@ static int gpio_ex_init(void)
                                  GPIO_EX_MAX_MINORS,
                                  "gpio_example_driver");
     if (err != 0)
-    {
         return err;
-    }
 
     for (i = 0; i < GPIO_EX_MAX_MINORS; i++)
     {
-        /* initialize devs[i] fields */
         cdev_init(&devs[i].cdev, &gpio_ex_fops);
         cdev_add(&devs[i].cdev, MKDEV(GPIO_EX_MAJOR, i), 1);
     }
