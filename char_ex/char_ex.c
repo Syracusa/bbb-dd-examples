@@ -10,12 +10,14 @@ MODULE_LICENSE("GPL");
 #define CHAR_EX_MAJOR       142
 #define CHAR_EX_MAX_MINORS  5
 
+#define DRV_BUFLEN  1024
+
 /* ================================================*/
 struct char_ex_data
 {
     struct cdev cdev;
 
-    char buf[1024];
+    char buf[BUFLEN];
     int offset;
 };
 
@@ -33,11 +35,6 @@ ssize_t char_ex_write(struct file* filp,
                       loff_t* fpos);
 
 /* ================================================*/
-
-static void prt_drvinfo(struct char_ex_data *drv_data)
-{
-
-}
 
 /* ================================================*/
 int char_ex_open(struct inode* inodp,
@@ -73,16 +70,36 @@ int char_ex_release(struct inode* inodp,
 }
 
 ssize_t char_ex_write(struct file* filp,
-                      const char __user* buf,
+                      const char __user* ubuf,
                       size_t count,
                       loff_t* fpos)
 {
     struct char_ex_data *drv_data;
+    int buf_remain;
+    int write_len;
+    int copy_res;
+    
     drv_data = filp->private_data;
 
     printk(KERN_NOTICE "BBB charex driver write called(major:%u minor:%u)\n",
             MAJOR(drv_data->cdev.dev), MINOR(drv_data->cdev.dev));
-    return 0;
+
+    buf_remain = DRV_BUFLEN - drv_data->offset;
+    if (buf_remain > count)
+        write_len = count;
+    else
+        write_len = buf_remain;
+    
+    copyres = copy_from_user(ubuf, &(drv_data->buf[drv_data->offset]), write_len);
+    if (copyres)
+    {
+        return -EFAULT;
+    {
+    else 
+    {
+        drv_data->offset += write_len;
+        return write_len;
+    }
 }
 
 ssize_t char_ex_read(struct file* filp,
@@ -91,10 +108,31 @@ ssize_t char_ex_read(struct file* filp,
                      loff_t* fpos)
 {
     struct char_ex_data *drv_data;
+    int read_len;
+    int copy_res;
+
+
     drv_data = filp->private_data;
 
     printk(KERN_NOTICE "BBB charex driver read called(major:%u minor:%u)\n",
             MAJOR(drv_data->cdev.dev), MINOR(drv_data->cdev.dev));
+    
+    if (drv_data->offset > count)
+        read_len = count;
+    else 
+        read_len = drv_data->offset;
+    
+    copyres = copy_to_user(ubuf, drv_data->buf, readlen);
+    if (copyres)
+    {
+        return -EFAULT;
+    }
+    else 
+    {
+        drv_data->offset -= readlen;
+        /* TODO : Move data to original point */    
+    }
+    
     return 0;
 }
 
