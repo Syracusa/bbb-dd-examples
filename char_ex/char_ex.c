@@ -24,19 +24,6 @@ struct char_ex_data
 struct char_ex_data devs[CHAR_EX_MAX_MINORS];
 
 /* ================================================*/
-ssize_t char_ex_read(struct file* filp,
-                     char __user* buf,
-                     size_t count,
-                     loff_t* fpos);
-
-ssize_t char_ex_write(struct file* filp,
-                      const char __user* buf,
-                      size_t count,
-                      loff_t* fpos);
-
-/* ================================================*/
-
-/* ================================================*/
 int char_ex_open(struct inode* inodp,
                  struct file* filp)
 {

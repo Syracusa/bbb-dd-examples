@@ -4,8 +4,10 @@
 ## Resources
 ### Technical Refernece(Memory-Mapped IO)
  + https://www.ti.com/lit/ug/spruh73q/spruh73q.pdf?ts=1666670382560&ref_url=https%253A%252F%252Fwww.ti.com%252Fproduct%252FAM3358
-
-
+### Beaglebone black P8 table
+ + https://github.com/derekmolloy/boneDeviceTree/blob/master/docs/BeagleboneBlackP8HeaderTable.pdf
+### Beaglebone black P9 table
+ + https://github.com/derekmolloy/boneDeviceTree/blob/master/docs/BeagleboneBlackP9HeaderTable.pdf
 ## GPIO example(./gpio_ex, ongoing)
  - Beaglebone black gpio control example(Character device driver).
  - No kernel gpio interface used.

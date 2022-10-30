@@ -17,6 +17,15 @@ MODULE_LICENSE("GPL");
 #define BBB_GPIO0_IN (BBB_GPIO0_BASE + OMAP4_GPIO_DATAIN)
 #define BBB_GPIO0_OUT (BBB_GPIO0_BASE + OMAP4_GPIO_DATAOUT)
 
+#define BBB_GPIO1_IN (BBB_GPIO1_BASE + OMAP4_GPIO_DATAIN)
+#define BBB_GPIO1_OUT (BBB_GPIO1_BASE + OMAP4_GPIO_DATAOUT)
+
+#define BBB_GPIO2_IN (BBB_GPIO2_BASE + OMAP4_GPIO_DATAIN)
+#define BBB_GPIO2_OUT (BBB_GPIO2_BASE + OMAP4_GPIO_DATAOUT)
+
+#define BBB_GPIO3_IN (BBB_GPIO3_BASE + OMAP4_GPIO_DATAIN)
+#define BBB_GPIO3_OUT (BBB_GPIO3_BASE + OMAP4_GPIO_DATAOUT)
+
 #define GPIO_EX_MAJOR       42
 #define GPIO_EX_MAX_MINORS  5
 
@@ -39,10 +48,17 @@ ssize_t gpio_ex_write(struct file* filp,
                       size_t count,
                       loff_t* fpos);
 
+int gpio_ex_open(struct inode* inodp,
+                 struct file* filp);
+
+
+
 /* ================================================*/
 
 struct file_operations gpio_ex_fops = {
     .owner = THIS_MODULE,
+    .open = gpio_ex_open,
+    .release = gpio_ex_release,
     .read = gpio_ex_read,
     .write = gpio_ex_write
 };
@@ -54,43 +70,58 @@ ssize_t gpio_ex_read(struct file* filp,
                      size_t count,
                      loff_t* fpos)
 {
-    u32 reg_state;
-#if 0
-    struct gpio_ex_data *drv_data; 
+    u32 reg_state[4];
 
-    if (count < sizeof(reg_state))
-        return -EFAULT;
+    printk(KERN_NOTICE "BBB GPIO TESTDRV READ CALL\n");
 
-    drv_data = (struct gpio_ex_data *) filp->private_data;
-#endif
-    readl(BBB_GPIO0_IN, &reg_state);
+    readl(BBB_GPIO0_IN, &reg_state[0]);
+    readl(BBB_GPIO1_IN, &reg_state[1]);
+    readl(BBB_GPIO2_IN, &reg_state[2]);
+    readl(BBB_GPIO3_IN, &reg_state[3]);
     
-    if (copy_to_user(ubuf, &reg_state, sizeof(u32)))
+    if (copy_to_user(ubuf, reg_state, 4 * 4))
         return -EFAULT;
 
-    return sizeof(reg_state);
+    return 0;
 }
 
 ssize_t gpio_ex_write(struct file* filp,
-                      const char __user* buf,
+                      const char __user* ubuf,
                       size_t count,
                       loff_t* fpos)
 {
-#if 0
-    int ret = 0;
-    (volatile u32 __force*)BBB_GPIO0_OUT = 1;
-    return ret;
-#endif
-    return 1;
+    u32 reg_state[4];
+
+    printk(KERN_NOTICE "BBB GPIO TESTDRV WRITE CALL\n");
+
+    if (copy_from_user(reg_state, ubuf, 4 * 4)
+        return -EFAULT;
+        
+    writel(BBB_GPIO0_OUT, &reg_state[0]);
+    writel(BBB_GPIO1_OUT, &reg_state[1]);
+    writel(BBB_GPIO2_OUT, &reg_state[2]);
+    writel(BBB_GPIO3_OUT, &reg_state[3]);
+
+    return 0;
 }
 
 int gpio_ex_open(struct inode* inodp,
                  struct file* filp)
 {
     struct gpio_ex_data* drv_data;
+    
+    printk(KERN_NOTICE "BBB GPIO TESTDRV OPEN CALL\n");
+
     drv_data = container_of(inodp->i_cdev, struct gpio_ex_data, cdev);
     filp->private_data = drv_data;
 
+    return 0;
+}
+
+int gpio_ex_release(struct inode* inodp,
+                 struct file* filp)
+{
+    printk(KERN_NOTICE "BBB GPIO TESTDRV RELEASE CALL\n");
     return 0;
 }
 
