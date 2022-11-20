@@ -10,6 +10,7 @@
         "sysfs.h": "c",
         "kernfs.h": "c",
         "idr.h": "c",
-        "memory": "c"
+        "memory": "c",
+        "*.tcc": "c"
     }
 }
