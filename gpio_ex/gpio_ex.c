@@ -72,6 +72,7 @@ struct file_operations gpio_ex_fops = {
 
 static void set_output_enable(u32 val)
 {
+    /* TODO void --> u32 */
     void __iomem * gpio0_oe = ioremap(BBB_GPIO0_OE, 4);
     void __iomem * gpio1_oe = ioremap(BBB_GPIO1_OE, 4);
     void __iomem * gpio2_oe = ioremap(BBB_GPIO2_OE, 4);

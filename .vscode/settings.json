@@ -12,5 +12,6 @@
         "idr.h": "c",
         "memory": "c",
         "*.tcc": "c"
-    }
+    },
+    "cmake.sourceDirectory": "${workspaceFolder}/userapp"
 }
