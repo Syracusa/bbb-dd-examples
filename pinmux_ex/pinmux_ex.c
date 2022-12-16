@@ -5,6 +5,8 @@
 
 MODULE_LICENSE("GPL");
 
+char logbuffer[200];
+
 static void set_pinmux(volatile unsigned int addr, int mmode)
 {
     struct am335x_conf_regval val;
@@ -17,6 +19,16 @@ static void set_pinmux(volatile unsigned int addr, int mmode)
     writel(addr, val);
 }
 
+static void enable_interrupt()
+{
+    /* request_irq(gpio_isr) */
+}
+
+static void gpio_isr()
+{
+    /* Fill logbuffer interrupted time and information */
+}
+
 static int pinmux_ex_init(void)
 {
     printk(KERN_NOTICE "BBB PINMUX Test driver init\n");
@@ -26,6 +38,8 @@ static int pinmux_ex_init(void)
     set_pinmux(PINCTRL_P8_04, 7);
     set_pinmux(PINCTRL_P8_05, 7);
     set_pinmux(PINCTRL_P8_06, 7);
+
+    enable_interrupt();
 
     return 0;
 }
