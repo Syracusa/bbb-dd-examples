@@ -73,18 +73,18 @@ struct file_operations gpio_ex_fops = {
 static void set_output_enable(u32 val)
 {
     /* TODO void --> u32 */
-    void __iomem * gpio0_oe = ioremap(BBB_GPIO0_OE, 4);
-    void __iomem * gpio1_oe = ioremap(BBB_GPIO1_OE, 4);
-    void __iomem * gpio2_oe = ioremap(BBB_GPIO2_OE, 4);
-    void __iomem * gpio3_oe = ioremap(BBB_GPIO3_OE, 4);
+    u32 __iomem* gpio0_oe = ioremap(BBB_GPIO0_OE, 4);
+    u32 __iomem* gpio1_oe = ioremap(BBB_GPIO1_OE, 4);
+    u32 __iomem* gpio2_oe = ioremap(BBB_GPIO2_OE, 4);
+    u32 __iomem* gpio3_oe = ioremap(BBB_GPIO3_OE, 4);
 
     printk(KERN_NOTICE "Set all gpio oe register to %u %p %p %p %p\n",
            val, gpio0_oe, gpio1_oe, gpio2_oe, gpio3_oe);
 
-    *(u32*)gpio0_oe = val;
-    *(u32*)gpio1_oe = val;
-    *(u32*)gpio2_oe = val;
-    *(u32*)gpio3_oe = val;
+    *gpio0_oe = val;
+    *gpio1_oe = val;
+    *gpio2_oe = val;
+    *gpio3_oe = val;
 }
 
 static void prt_register(u32 val)
@@ -94,16 +94,20 @@ static void prt_register(u32 val)
     u32 pos;
     vals[32] = '\0';
 
-    pos = 1; 
-    for (i = 0; i < 32; i++){
-        if ((val & pos) != 0){
+    pos = 1;
+    for (i = 0; i < 32; i++)
+    {
+        if ((val & pos) != 0)
+        {
             vals[i] = '1';
-        } else {
+        }
+        else
+        {
             vals[i] = '0';
         }
         pos = pos << 1;
     }
-    
+
     printk(KERN_NOTICE "%s\n", vals);
 }
 
@@ -119,20 +123,20 @@ ssize_t gpio_ex_read(struct file* filp,
                      size_t count,
                      loff_t* fpos)
 {
-    void __iomem * gpio0_in = ioremap(BBB_GPIO0_IN, 4);
-    void __iomem * gpio1_in = ioremap(BBB_GPIO1_IN, 4);
-    void __iomem * gpio2_in = ioremap(BBB_GPIO2_IN, 4);
-    void __iomem * gpio3_in = ioremap(BBB_GPIO3_IN, 4);
+    u32* gpio0_in = ioremap(BBB_GPIO0_IN, 4);
+    u32* gpio1_in = ioremap(BBB_GPIO1_IN, 4);
+    u32* gpio2_in = ioremap(BBB_GPIO2_IN, 4);
+    u32* gpio3_in = ioremap(BBB_GPIO3_IN, 4);
 
     printk(KERN_NOTICE "BBB GPIO TESTDRV READ CALL\n");
 
     set_output_enable(0xFFFFFFFF); /* Disable output */
 
-    prt_register(*(u32*)gpio0_in);
-    prt_register(*(u32*)gpio1_in);
-    prt_register(*(u32*)gpio2_in);
-    prt_register(*(u32*)gpio3_in);
-    
+    prt_register(*gpio0_in);
+    prt_register(*gpio1_in);
+    prt_register(*gpio2_in);
+    prt_register(*gpio3_in);
+
     return count;
 }
 
@@ -144,10 +148,10 @@ ssize_t gpio_ex_write(struct file* filp,
     u32 val, setall;
     u8 input;
 
-    void __iomem * gpio0_out = ioremap(BBB_GPIO0_OUT, 4);
-    void __iomem * gpio1_out = ioremap(BBB_GPIO1_OUT, 4);
-    void __iomem * gpio2_out = ioremap(BBB_GPIO2_OUT, 4);
-    void __iomem * gpio3_out = ioremap(BBB_GPIO3_OUT, 4);
+    void __iomem* gpio0_out = ioremap(BBB_GPIO0_OUT, 4);
+    void __iomem* gpio1_out = ioremap(BBB_GPIO1_OUT, 4);
+    void __iomem* gpio2_out = ioremap(BBB_GPIO2_OUT, 4);
+    void __iomem* gpio3_out = ioremap(BBB_GPIO3_OUT, 4);
 
     printk(KERN_NOTICE "BBB GPIO TESTDRV WRITE CALL\n");
     setall = 0xFFFFFFFF;
