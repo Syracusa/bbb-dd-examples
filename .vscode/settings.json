@@ -11,7 +11,8 @@
         "kernfs.h": "c",
         "idr.h": "c",
         "memory": "c",
-        "*.tcc": "c"
+        "*.tcc": "c",
+        "fs.h": "c"
     },
     "cmake.sourceDirectory": "${workspaceFolder}/userapp"
 }
