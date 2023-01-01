@@ -1,131 +1,263 @@
 #include <linux/init.h>
 #include <linux/module.h>
+#include <linux/fs.h>
 #include <linux/cdev.h>
+#include <linux/uaccess.h>
 
 #include "bbb_pinmux.h"
 
+#include <linux/platform_data/gpio-omap.h>
+
 MODULE_LICENSE("GPL");
-
-#define READ_GPIO _IOWR('a', 'a', int32_t*)
-#define ON_GPIO _IOW('a', 'b', int32_t*)
-#define OFF_GPIO _IOW('a', 'c', int32_t*)
-
 
 #define PINMUX_EX_MAJOR       42
 #define PINMUX_EX_MAX_MINORS  5
 
+#define READ_GPIO _IOWR('a', 'a', u32*)
+#define ON_GPIO _IOW('a', 'b', u32*)
+#define OFF_GPIO _IOW('a', 'c', u32*)
+#define GPIO_DIR_OUT _IOW('a', 'd', u32*)
+#define GPIO_DIR_IN _IOW('a', 'e', u32*)
+
+#define BBB_GPIO0_BASE 0x44E07000
+#define BBB_GPIO1_BASE 0x4804C000
+#define BBB_GPIO2_BASE 0x481AC000
+#define BBB_GPIO3_BASE 0x481AE000
+
+struct pinmux_ex_data
+{
+    struct cdev cdev;
+};
+
+struct pinmux_ex_data devs[PINMUX_EX_MAX_MINORS];
+
 char logbuffer[200];
 
-struct file_operations gpio_ex_fops = {
-    .owner = THIS_MODULE,
-    .unlocked_ioctl = pinmux_ex_ioctl
-    // .open = gpio_ex_open,
-    // .release = gpio_ex_release,
-    // .read = gpio_ex_read,
-    // .write = gpio_ex_write
-};
+
+static u32 __iomem* get_gpio_base_addr(int gpio_id)
+{
+    int gpio_regidx = gpio_id / 32;
+    switch (gpio_regidx)
+    {
+        case 0:
+            return ioremap(BBB_GPIO0_BASE, 4);
+        case 1:
+            return ioremap(BBB_GPIO1_BASE, 4);
+        case 2:
+            return ioremap(BBB_GPIO2_BASE, 4);
+        case 3:
+            return ioremap(BBB_GPIO3_BASE, 4);
+        default:
+            break;
+    }
+    return NULL;
+}
+
+static void gpio_direction_set(int gpio_id, u32 is_read)
+{
+    u32 __iomem* outaddr = get_gpio_base_addr(gpio_id) + OMAP4_GPIO_OE;
+    int offset = gpio_id - ((gpio_id / 32) * 32);
+
+    u32 val = readl(outaddr);
+    if (is_read)
+    {
+        printk(KERN_NOTICE "SET %d DIRECTION IN\n", gpio_id);
+        val |= 1UL << offset; /* Set bit */
+    }
+    else
+    {
+        printk(KERN_NOTICE "SET %d DIRECTION OUT\n", gpio_id);
+        val &= ~(1 << offset); /* Clear bit */
+    }
+    writel(val, outaddr);
+}
+
+static void write_gpio(int gpio_id, u32 val)
+{
+    int offset = gpio_id - ((gpio_id / 32) * 32);
+    u32 __iomem* outaddr;
+    u32 mask = 0UL;
+    mask |= 1UL << offset;
+
+    if (val == 0)
+    {
+        outaddr = get_gpio_base_addr(gpio_id) + OMAP4_GPIO_CLEARDATAOUT;
+        printk(KERN_NOTICE "CLEAR GPIO %d\n", gpio_id);
+    }
+    else if (val == 1)
+    {
+        outaddr = get_gpio_base_addr(gpio_id) + OMAP4_GPIO_SETDATAOUT;
+        printk(KERN_NOTICE "SET GPIO %d\n", gpio_id);
+    }
+    else
+    {
+        printk(KERN_NOTICE "UNABLE TO SET VAL %d\n", val);
+        return;
+    }
+
+    writel(mask, outaddr);
+}
+
+static u32 read_gpio(int gpio_id, u32* buf)
+{
+    u32 __iomem* inaddr = get_gpio_base_addr(gpio_id) + OMAP4_GPIO_DATAIN;
+    int offset = gpio_id - ((gpio_id / 32) * 32);
+    u32 val = (readl(inaddr) >> offset) & 1UL;
+
+    return val;
+}
 
 static long pinmux_ex_ioctl(struct file* file,
                             unsigned int cmd,
                             unsigned long arg)
 {
-    int32_t val;
+    u32 gpio_id;
+    u32 res;
+
+    if (copy_from_user(&gpio_id, (u32*)arg, sizeof(gpio_id)))
+    {
+        printk(KERN_NOTICE "GPIO IOCTL CALLED BUT CAN'T READ FROM USER\n");
+    }
+    else
+    {
+        printk(KERN_NOTICE "GPIO IOCTL CALL. ID:%d\n", gpio_id);
+    }
+
     switch (cmd)
     {
         case READ_GPIO:
-            /* Get GPIO ID to read */
-            if (copy_from_user(&val, (int32_t*)arg, sizeof(value)))
+            /* Read GPIO */
+            read_gpio(gpio_id, &res);
+
+            /* Send to user */
+            if (copy_to_user(&arg, &res, sizeof(res)))
             {
-                printk(KERN_NOTICE, "GPIO READ IOCTL CALLED BUT CAN'T READ FROM USER\n");
+                printk(KERN_NOTICE "GPIO READ IOCTL CALLED BUT CAN'T COPY TO USER\n");
             }
             else
             {
-                printk(KERN_NOTICE, "GPIO READ IOCTL CALL. VAL:%d\n", val);
-            }
-
-            /* Read GPIO*/
-            // TBD
-            val = 1
-
-            /**/
-            if (copy_to_user(&arg, &val, sizeof(val)))
-            {
-                printk(KERN_NOTICE, "GPIO READ IOCTL CALLED BUT CAN'T READ FROM USER\n");
-            }
-            else
-            {
-                printk(KERN_NOTICE, "GPIO READ IOCTL CALL. VAL:%d\n", val);
+                printk(KERN_NOTICE "GPIO READ IOCTL CALL. VAL:%d\n", gpio_id);
             }
             break;
         case ON_GPIO:
-            /* Get GPIO ID to on */
-            if (copy_from_user(&val, (int32_t*)arg, sizeof(value)))
-            {
-                printk(KERN_NOTICE, "GPIO ON IOCTL CALLED BUT CAN'T READ FROM USER\n");
-            }
-            else
-            {
-                printk(KERN_NOTICE, "GPIO ON IOCTL CALL. VAL:%d\n", val);
-            }
-            
             /* Write GPIO to 1 */
-            // TBD
-
+            write_gpio(gpio_id, 1);
             break;
         case OFF_GPIO:
-            /* Get GPIO ID to off */
-            if (copy_from_user(&val, (int32_t*)arg, sizeof(value)))
-            {
-                printk(KERN_NOTICE, "GPIO OFF IOCTL CALLED BUT CAN'T READ FROM USER\n");
-            }
-            else
-            {
-                printk(KERN_NOTICE, "GPIO OFF IOCTL CALL. VAL:%d\n", val);
-            }
-
             /* Write GPIO to 0 */
-            // TBD
-
+            write_gpio(gpio_id, 0);
+            break;
+        case GPIO_DIR_OUT:
+            gpio_direction_set(gpio_id, 0);
+            break;
+        case GPIO_DIR_IN:
+            gpio_direction_set(gpio_id, 1);
             break;
         default:
             break;
     }
 
+    return 0;
 }
 
-static void set_pinmux(volatile unsigned int addr, int mmode)
+static void set_pinmux(volatile void* addr, int mmode)
 {
     struct am335x_conf_regval val;
+    u32 aggr;
+
     val.slewctrl = 0;
     val.rxactive = 1;
     val.pulltypesel = 1;
     val.puden = 0;
     val.mmode = mmode;
 
-    writel(addr, val);
+    memcpy(&aggr, &val, sizeof(u32));
+    writel(aggr, addr);
 }
 
-static void enable_interrupt()
+// static void enable_interrupt()
+// {
+//     /* request_irq(gpio_isr) */
+//     ;
+// }
+
+// static void gpio_isr()
+// {
+//     /* Fill logbuffer interrupted time and information */
+//     ;
+// }
+
+ssize_t pinmux_ex_read(struct file* filp,
+                       char __user* ubuf,
+                       size_t count,
+                       loff_t* fpos)
 {
-    /* request_irq(gpio_isr) */
+    printk(KERN_NOTICE "BBB PINMUX TESTDRV READ CALL\n");
+    return count;
 }
 
-static void gpio_isr()
+ssize_t pinmux_ex_write(struct file* filp,
+                        const char __user* ubuf,
+                        size_t count,
+                        loff_t* fpos)
 {
-    /* Fill logbuffer interrupted time and information */
+    printk(KERN_NOTICE "BBB PINMUX TESTDRV WRITE CALL\n");
+    return count;
 }
+
+int pinmux_ex_open(struct inode* inodp,
+                   struct file* filp)
+{
+    struct pinmux_ex_data* drv_data;
+
+    printk(KERN_NOTICE "BBB PINMUX TESTDRV OPEN CALL\n");
+
+    drv_data = container_of(inodp->i_cdev, struct pinmux_ex_data, cdev);
+    filp->private_data = drv_data;
+
+    return 0;
+}
+
+int pinmux_ex_release(struct inode* inodp,
+                      struct file* filp)
+{
+    printk(KERN_NOTICE "BBB PINMUX TESTDRV RELEASE CALL\n");
+    return 0;
+}
+
+struct file_operations pinmux_ex_fops = {
+    .owner = THIS_MODULE,
+    .unlocked_ioctl = pinmux_ex_ioctl,
+    .open = pinmux_ex_open,
+    .release = pinmux_ex_release,
+    .read = pinmux_ex_read,
+    .write = pinmux_ex_write
+};
 
 static int pinmux_ex_init(void)
 {
+    int err, i;
     printk(KERN_NOTICE "BBB PINMUX Test driver init\n");
 
-    /* Set pinmux mode 7(GPIO) */
-    set_pinmux(PINCTRL_P8_03, 7);
-    set_pinmux(PINCTRL_P8_04, 7);
-    set_pinmux(PINCTRL_P8_05, 7);
-    set_pinmux(PINCTRL_P8_06, 7);
+    err = register_chrdev_region(MKDEV(PINMUX_EX_MAJOR, 0),
+                                 PINMUX_EX_MAX_MINORS,
+                                 "gpio_example_driver");
+    if (err != 0)
+        return err;
 
-    enable_interrupt();
+    for (i = 0; i < PINMUX_EX_MAX_MINORS; i++)
+    {
+        cdev_init(&devs[i].cdev, &pinmux_ex_fops);
+        cdev_add(&devs[i].cdev, MKDEV(PINMUX_EX_MAJOR, i), 1);
+    }
+
+    /* Set pinmux mode 7(GPIO) */
+    set_pinmux((u32*)PINCTRL_P8_03, 7);
+    set_pinmux((u32*)PINCTRL_P8_04, 7);
+    set_pinmux((u32*)PINCTRL_P8_05, 7);
+    set_pinmux((u32*)PINCTRL_P8_06, 7);
+
+    // enable_interrupt();
 
     return 0;
 }

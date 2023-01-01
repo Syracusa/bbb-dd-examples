@@ -5,14 +5,14 @@
 
 #define CONTORL_MODULE_BASE  0x44E12000
 
-#define PINCTRL_P8_03 (CONTORL_MODULE_BASE + 0x818) /* gpmc_ad6 */
-#define PINCTRL_P8_04 (CONTORL_MODULE_BASE + 0x81c) /* gpmc_ad7 */
-#define PINCTRL_P8_05 (CONTORL_MODULE_BASE + 0x808) /* gpmc_ad2 */
-#define PINCTRL_P8_06 (CONTORL_MODULE_BASE + 0x80c) /* gpmc_ad3 */
+#define PINCTRL_P8_03 (CONTORL_MODULE_BASE + 0x818) /* gpmc_ad6 - 38 - GPIO1_6 */
+#define PINCTRL_P8_04 (CONTORL_MODULE_BASE + 0x81c) /* gpmc_ad7 - 39 - GPIO1_7 */
+#define PINCTRL_P8_05 (CONTORL_MODULE_BASE + 0x808) /* gpmc_ad2 - 34 - GPIO1_2 */
+#define PINCTRL_P8_06 (CONTORL_MODULE_BASE + 0x80c) /* gpmc_ad3 - 35 - GPIO1_3 */
 
 struct am335x_conf_regval{
     u32 resv1 : 12; 
-    u32 resv1 : 13;   
+    u32 resv2 : 13;   
     u32 slewctrl : 1;
     u32 rxactive : 1;
     u32 pulltypesel : 1;
