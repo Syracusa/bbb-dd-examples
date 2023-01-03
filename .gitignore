@@ -1,6 +1,7 @@
 # Build dir
 builddir
 build
+bin
 winbuild
 
 # Prerequisites

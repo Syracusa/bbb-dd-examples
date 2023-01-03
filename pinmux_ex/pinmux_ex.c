@@ -160,10 +160,11 @@ static long pinmux_ex_ioctl(struct file* file,
     return 0;
 }
 
-static void set_pinmux(volatile void* addr, int mmode)
+static void set_pinmux(u32 addr, int mmode)
 {
     struct am335x_conf_regval val;
     u32 aggr;
+    u32 __iomem* remapped = ioremap(addr, 4);
 
     val.slewctrl = 0;
     val.rxactive = 1;
@@ -172,7 +173,7 @@ static void set_pinmux(volatile void* addr, int mmode)
     val.mmode = mmode;
 
     memcpy(&aggr, &val, sizeof(u32));
-    writel(aggr, addr);
+    writel(aggr, remapped);
 }
 
 // static void enable_interrupt()
@@ -244,19 +245,25 @@ static int pinmux_ex_init(void)
                                  "gpio_example_driver");
     if (err != 0)
         return err;
+    printk(KERN_NOTICE "TRY CDEV INIT\n");
 
     for (i = 0; i < PINMUX_EX_MAX_MINORS; i++)
     {
         cdev_init(&devs[i].cdev, &pinmux_ex_fops);
         cdev_add(&devs[i].cdev, MKDEV(PINMUX_EX_MAJOR, i), 1);
     }
+    printk(KERN_NOTICE "CDEV INIT DONE\n");
 
     /* Set pinmux mode 7(GPIO) */
-    set_pinmux((u32*)PINCTRL_P8_03, 7);
-    set_pinmux((u32*)PINCTRL_P8_04, 7);
-    set_pinmux((u32*)PINCTRL_P8_05, 7);
-    set_pinmux((u32*)PINCTRL_P8_06, 7);
-
+    set_pinmux(PINCTRL_P8_03, 7);
+    printk(KERN_NOTICE "PINMUX P8_03 INIT DONE\n");
+    set_pinmux(PINCTRL_P8_04, 7);
+    printk(KERN_NOTICE "PINMUX P8_04 INIT DONE\n");
+    set_pinmux(PINCTRL_P8_05, 7);
+    printk(KERN_NOTICE "PINMUX P8_05 INIT DONE\n");
+    set_pinmux(PINCTRL_P8_06, 7);
+    printk(KERN_NOTICE "PINMUX P8_06 INIT DONE\n");
+    
     // enable_interrupt();
 
     return 0;
