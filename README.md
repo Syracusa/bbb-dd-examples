@@ -16,12 +16,16 @@
 
 ## Resources
 ### Beaglebone black P8 table
- + https://github.com/derekmolloy/boneDeviceTree/blob/master/docs/BeagleboneBlackP8HeaderTable.pdf
++ https://github.com/derekmolloy/boneDeviceTree/blob/master/docs/BeagleboneBlackP8HeaderTable.pdf
 ### Beaglebone black P9 table
- + https://github.com/derekmolloy/boneDeviceTree/blob/master/docs/BeagleboneBlackP9HeaderTable.pdf
++ https://github.com/derekmolloy/boneDeviceTree/blob/master/docs/BeagleboneBlackP9HeaderTable.pdf
+### Cape Expansion Header
++ https://vadl.github.io/beagleboneblack/2016/07/29/setting-up-bbb-gpio
+
+
 ## GPIO example(./gpio_ex, ongoing)
- - Beaglebone black gpio control example(Character device driver).
- - No kernel gpio interface used.
+- Beaglebone black gpio control example(Character device driver).
+- No kernel gpio interface used.
 
 ## Character device driver example(./char_ex/)
- - Simple Character device driver example that read/write to kernel memory.
+- Simple Character device driver example that read/write to kernel memory.

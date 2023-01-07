@@ -4,11 +4,27 @@
 #include <linux/cdev.h>
 #include <linux/uaccess.h>
 
-#include "bbb_pinmux.h"
-
 #include <linux/platform_data/gpio-omap.h>
 
 MODULE_LICENSE("GPL");
+
+#define CONTORL_MODULE_BASE  0x44E12000
+
+#define PINCTRL_P8_03 (CONTORL_MODULE_BASE + 0x818) /* gpmc_ad6 - 38 - GPIO1_6 */
+#define PINCTRL_P8_04 (CONTORL_MODULE_BASE + 0x81c) /* gpmc_ad7 - 39 - GPIO1_7 */
+#define PINCTRL_P8_05 (CONTORL_MODULE_BASE + 0x808) /* gpmc_ad2 - 34 - GPIO1_2 */
+#define PINCTRL_P8_06 (CONTORL_MODULE_BASE + 0x80c) /* gpmc_ad3 - 35 - GPIO1_3 */
+
+struct am335x_conf_regval{
+    u32 resv1 : 12; 
+    u32 resv2 : 13;   
+    u32 slewctrl : 1;
+    u32 rxactive : 1;
+    u32 pulltypesel : 1;
+    u32 puden : 1;
+    u32 mmode : 3;
+}__attribute__((packed));
+
 
 #define PINMUX_EX_MAJOR       42
 #define PINMUX_EX_MAX_MINORS  5
@@ -98,13 +114,13 @@ static void write_gpio(int gpio_id, u32 val)
     writel(mask, outaddr);
 }
 
-static u32 read_gpio(int gpio_id, u32* buf)
+static void read_gpio(int gpio_id, u32* buf)
 {
     u32 __iomem* inaddr = get_gpio_base_addr(gpio_id) + OMAP4_GPIO_DATAIN;
     int offset = gpio_id - ((gpio_id / 32) * 32);
-    u32 val = (readl(inaddr) >> offset) & 1UL;
-
-    return val;
+    u32 regval = readl(inaddr);
+    printk(KERN_NOTICE "REG %p VAL %x\n", inaddr, regval);
+    *buf = ((regval >> offset) & 1UL);
 }
 
 static long pinmux_ex_ioctl(struct file* file,
@@ -130,13 +146,13 @@ static long pinmux_ex_ioctl(struct file* file,
             read_gpio(gpio_id, &res);
 
             /* Send to user */
-            if (copy_to_user(&arg, &res, sizeof(res)))
+            if (copy_to_user((u32*)arg, &res, sizeof(res)))
             {
                 printk(KERN_NOTICE "GPIO READ IOCTL CALLED BUT CAN'T COPY TO USER\n");
             }
             else
             {
-                printk(KERN_NOTICE "GPIO READ IOCTL CALL. VAL:%d\n", gpio_id);
+                printk(KERN_NOTICE "GPIO READ IOCTL CALL. VAL:%u\n", res);
             }
             break;
         case ON_GPIO:
@@ -162,10 +178,16 @@ static long pinmux_ex_ioctl(struct file* file,
 
 static void set_pinmux(u32 addr, int mmode)
 {
+#if 0
     struct am335x_conf_regval val;
     u32 aggr;
     u32 __iomem* remapped = ioremap(addr, 4);
 
+    u32 regval = readl(remapped);
+    printk(KERN_NOTICE "BBB PINMUX PRIV : %p %x\n", remapped, regval);
+
+    val.resv1 = 0;
+    val.resv2 = 0;
     val.slewctrl = 0;
     val.rxactive = 1;
     val.pulltypesel = 1;
@@ -173,20 +195,48 @@ static void set_pinmux(u32 addr, int mmode)
     val.mmode = mmode;
 
     memcpy(&aggr, &val, sizeof(u32));
+    printk(KERN_NOTICE "BBB PINMUX TRY REWRITE REG : %p %x\n", remapped, aggr);
     writel(aggr, remapped);
+    
+    regval = readl(remapped);
+    printk(KERN_NOTICE "BBB PINMUX AFTER : %p %x\n", remapped, regval);
+#else
+    struct am335x_conf_regval val;
+    u32 aggr;
+    u32 __iomem* remapped = ioremap(addr, 4);
+
+    volatile u32 * regptr = (u32*)remapped;
+    printk(KERN_NOTICE "BBB PINMUX PRIV : %p %x\n", remapped, *regptr);
+
+    val.resv1 = 0;
+    val.resv2 = 0;
+    val.slewctrl = 0;
+    val.rxactive = 1;
+    val.pulltypesel = 1;
+    val.puden = 0;
+    val.mmode = mmode;
+
+    memcpy(&aggr, &val, sizeof(u32));
+    printk(KERN_NOTICE "BBB PINMUX TRY REWRITE REG : %p %x\n", remapped, aggr);
+    *regptr = aggr;
+    
+    printk(KERN_NOTICE "BBB PINMUX AFTER : %p %x\n", remapped, *regptr);
+#endif
 }
 
-// static void enable_interrupt()
-// {
-//     /* request_irq(gpio_isr) */
-//     ;
-// }
+#if 0 // TBD
+static void enable_interrupt()
+{
+    /* request_irq(gpio_isr) */
+    ;
+}
 
-// static void gpio_isr()
-// {
-//     /* Fill logbuffer interrupted time and information */
-//     ;
-// }
+static void gpio_isr()
+{
+    /* Fill logbuffer interrupted time and information */
+    ;
+}
+#endif
 
 ssize_t pinmux_ex_read(struct file* filp,
                        char __user* ubuf,
@@ -264,15 +314,12 @@ static int pinmux_ex_init(void)
     set_pinmux(PINCTRL_P8_06, 7);
     printk(KERN_NOTICE "PINMUX P8_06 INIT DONE\n");
     
-    // enable_interrupt();
-
     return 0;
 }
 
 static void pinmux_ex_exit(void)
 {
     printk(KERN_NOTICE "BBB PINMUX Test driver exit\n");
-
 }
 
 module_init(pinmux_ex_init);

@@ -39,19 +39,23 @@ int main(){
     val = GPIO_ID_PIN_P8_04;
     ioctl(fd, ON_GPIO, &val);
 
+    sleep(1);
+
     /* Read from p8-03 */
     val = GPIO_ID_PIN_P8_03;
     ioctl(fd, READ_GPIO, &val);
-    printf("Read GPIO Result : %u", val);
+    printf("Read GPIO Result : %u\n", val);
 
     /* Write 0 to p8-04 */
     val = GPIO_ID_PIN_P8_04;
     ioctl(fd, OFF_GPIO, &val);
 
+    sleep(1);
+
     /* Read from p8-03 */
     val = GPIO_ID_PIN_P8_03;
     ioctl(fd, READ_GPIO, &val);
-    printf("Read GPIO Result : %u", val);
+    printf("Read GPIO Result : %u\n", val);
 
     return 0;
 }
