@@ -19,6 +19,7 @@ MODULE_LICENSE("GPL");
 
 /* Technical reference 1515P */
 struct am335x_conf_regval{
+    /* LSB should be first */
     u32 mmode : 3;
     u32 puden : 1;
     u32 pulltypesel : 1;
@@ -28,10 +29,10 @@ struct am335x_conf_regval{
     u32 resv1 : 12; 
 }__attribute__((packed));
 
-
 #define PINMUX_EX_MAJOR       42
 #define PINMUX_EX_MAX_MINORS  5
 
+/* Magic number, Command number, Data type */
 #define READ_GPIO _IOWR('a', 'a', u32*)
 #define ON_GPIO _IOW('a', 'b', u32*)
 #define OFF_GPIO _IOW('a', 'c', u32*)
@@ -51,7 +52,6 @@ struct pinmux_ex_data
 struct pinmux_ex_data devs[PINMUX_EX_MAX_MINORS];
 
 char logbuffer[200];
-
 
 static unsigned long get_gpio_base_addr(int gpio_id)
 {
@@ -204,28 +204,6 @@ static void set_pinmux(unsigned long addr, int mmode)
     
     regval = ioread32(remapped);
     printk(KERN_NOTICE "BBB PINMUX AFTER : %p %x\n", remapped, regval);
-#else
-    struct am335x_conf_regval val;
-    u32 aggr;
-    u32 __iomem* remapped = ioremap(addr, 4);
-
-    volatile u32 * regptr = (u32*)remapped;
-    printk(KERN_NOTICE "BBB PINMUX PRIV : %p %x\n", remapped, *regptr);
-
-    val.resv1 = 0;
-    val.resv2 = 0;
-    val.slewctrl = 0;
-    val.rxactive = 1;
-    val.pulltypesel = 1;
-    val.puden = 0;
-    val.mmode = mmode;
-
-    memcpy(&aggr, &val, sizeof(u32));
-    printk(KERN_NOTICE "BBB PINMUX TRY REWRITE REG : %p %x\n", remapped, aggr);
-    *regptr = aggr;
-    
-    printk(KERN_NOTICE "BBB PINMUX AFTER : %p %x\n", remapped, *regptr);
-#endif
 }
 
 #if 0 // TBD
