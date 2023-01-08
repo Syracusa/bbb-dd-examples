@@ -8,21 +8,24 @@
 
 MODULE_LICENSE("GPL");
 
-#define CONTORL_MODULE_BASE  0x44E12000
+/* Technical reference 180P */
+#define CONTORL_MODULE_BASE  0x44E10000 
 
+/* Technical reference 1459P */
 #define PINCTRL_P8_03 (CONTORL_MODULE_BASE + 0x818) /* gpmc_ad6 - 38 - GPIO1_6 */
 #define PINCTRL_P8_04 (CONTORL_MODULE_BASE + 0x81c) /* gpmc_ad7 - 39 - GPIO1_7 */
 #define PINCTRL_P8_05 (CONTORL_MODULE_BASE + 0x808) /* gpmc_ad2 - 34 - GPIO1_2 */
 #define PINCTRL_P8_06 (CONTORL_MODULE_BASE + 0x80c) /* gpmc_ad3 - 35 - GPIO1_3 */
 
+/* Technical reference 1515P */
 struct am335x_conf_regval{
-    u32 resv1 : 12; 
-    u32 resv2 : 13;   
-    u32 slewctrl : 1;
-    u32 rxactive : 1;
-    u32 pulltypesel : 1;
-    u32 puden : 1;
     u32 mmode : 3;
+    u32 puden : 1;
+    u32 pulltypesel : 1;
+    u32 rxactive : 1;
+    u32 slewctrl : 1;
+    u32 resv2 : 13;   
+    u32 resv1 : 12; 
 }__attribute__((packed));
 
 
@@ -50,28 +53,28 @@ struct pinmux_ex_data devs[PINMUX_EX_MAX_MINORS];
 char logbuffer[200];
 
 
-static u32 __iomem* get_gpio_base_addr(int gpio_id)
+static unsigned long get_gpio_base_addr(int gpio_id)
 {
     int gpio_regidx = gpio_id / 32;
     switch (gpio_regidx)
     {
         case 0:
-            return ioremap(BBB_GPIO0_BASE, 4);
+            return BBB_GPIO0_BASE;
         case 1:
-            return ioremap(BBB_GPIO1_BASE, 4);
+            return BBB_GPIO1_BASE;
         case 2:
-            return ioremap(BBB_GPIO2_BASE, 4);
+            return BBB_GPIO2_BASE;
         case 3:
-            return ioremap(BBB_GPIO3_BASE, 4);
+            return BBB_GPIO3_BASE;
         default:
             break;
     }
-    return NULL;
+    return 0;
 }
 
 static void gpio_direction_set(int gpio_id, u32 is_read)
 {
-    u32 __iomem* outaddr = get_gpio_base_addr(gpio_id) + OMAP4_GPIO_OE;
+    u32 __iomem* outaddr = ioremap(get_gpio_base_addr(gpio_id) + OMAP4_GPIO_OE, 4);
     int offset = gpio_id - ((gpio_id / 32) * 32);
 
     u32 val = readl(outaddr);
@@ -97,12 +100,12 @@ static void write_gpio(int gpio_id, u32 val)
 
     if (val == 0)
     {
-        outaddr = get_gpio_base_addr(gpio_id) + OMAP4_GPIO_CLEARDATAOUT;
+        outaddr = ioremap(get_gpio_base_addr(gpio_id) + OMAP4_GPIO_CLEARDATAOUT, 4);
         printk(KERN_NOTICE "CLEAR GPIO %d\n", gpio_id);
     }
     else if (val == 1)
     {
-        outaddr = get_gpio_base_addr(gpio_id) + OMAP4_GPIO_SETDATAOUT;
+        outaddr = ioremap(get_gpio_base_addr(gpio_id) + OMAP4_GPIO_SETDATAOUT, 4);
         printk(KERN_NOTICE "SET GPIO %d\n", gpio_id);
     }
     else
@@ -116,7 +119,7 @@ static void write_gpio(int gpio_id, u32 val)
 
 static void read_gpio(int gpio_id, u32* buf)
 {
-    u32 __iomem* inaddr = get_gpio_base_addr(gpio_id) + OMAP4_GPIO_DATAIN;
+    u32 __iomem* inaddr = ioremap(get_gpio_base_addr(gpio_id) + OMAP4_GPIO_DATAIN, 4);
     int offset = gpio_id - ((gpio_id / 32) * 32);
     u32 regval = readl(inaddr);
     printk(KERN_NOTICE "REG %p VAL %x\n", inaddr, regval);
@@ -176,14 +179,15 @@ static long pinmux_ex_ioctl(struct file* file,
     return 0;
 }
 
-static void set_pinmux(u32 addr, int mmode)
+static void set_pinmux(unsigned long addr, int mmode)
 {
-#if 0
+#if 1
     struct am335x_conf_regval val;
     u32 aggr;
     u32 __iomem* remapped = ioremap(addr, 4);
 
-    u32 regval = readl(remapped);
+    u32 regval = ioread32(remapped);
+    printk(KERN_NOTICE "BBB PINMUX PYSICAL ADDR : %lx\n", addr);
     printk(KERN_NOTICE "BBB PINMUX PRIV : %p %x\n", remapped, regval);
 
     val.resv1 = 0;
@@ -196,9 +200,9 @@ static void set_pinmux(u32 addr, int mmode)
 
     memcpy(&aggr, &val, sizeof(u32));
     printk(KERN_NOTICE "BBB PINMUX TRY REWRITE REG : %p %x\n", remapped, aggr);
-    writel(aggr, remapped);
+    iowrite32(aggr, remapped);
     
-    regval = readl(remapped);
+    regval = ioread32(remapped);
     printk(KERN_NOTICE "BBB PINMUX AFTER : %p %x\n", remapped, regval);
 #else
     struct am335x_conf_regval val;
@@ -305,13 +309,13 @@ static int pinmux_ex_init(void)
     printk(KERN_NOTICE "CDEV INIT DONE\n");
 
     /* Set pinmux mode 7(GPIO) */
-    set_pinmux(PINCTRL_P8_03, 7);
+    set_pinmux((unsigned long)PINCTRL_P8_03, 7);
     printk(KERN_NOTICE "PINMUX P8_03 INIT DONE\n");
-    set_pinmux(PINCTRL_P8_04, 7);
+    set_pinmux((unsigned long)PINCTRL_P8_04, 7);
     printk(KERN_NOTICE "PINMUX P8_04 INIT DONE\n");
-    set_pinmux(PINCTRL_P8_05, 7);
+    set_pinmux((unsigned long)PINCTRL_P8_05, 7);
     printk(KERN_NOTICE "PINMUX P8_05 INIT DONE\n");
-    set_pinmux(PINCTRL_P8_06, 7);
+    set_pinmux((unsigned long)PINCTRL_P8_06, 7);
     printk(KERN_NOTICE "PINMUX P8_06 INIT DONE\n");
     
     return 0;

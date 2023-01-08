@@ -30,32 +30,32 @@ int main(){
     /* Set input mode to p8-03 gpio pin */
     val = GPIO_ID_PIN_P8_03;
     ioctl(fd, GPIO_DIR_IN, &val);
+    printf("Set GPIO P8_03 Direction IN\n");
 
     /* Set output mode to p8-04 gpio pin */
     val = GPIO_ID_PIN_P8_04;
     ioctl(fd, GPIO_DIR_OUT, &val);
+    printf("Set GPIO P8_04 Direction OUT\n");
 
     /* Write 1 to p8-04 */
     val = GPIO_ID_PIN_P8_04;
     ioctl(fd, ON_GPIO, &val);
-
-    sleep(1);
+    printf("GPIO P8_04 output value to 1\n");
 
     /* Read from p8-03 */
     val = GPIO_ID_PIN_P8_03;
     ioctl(fd, READ_GPIO, &val);
-    printf("Read GPIO Result : %u\n", val);
+    printf("Read GPIO P8_03 Result : %u\n", val);
 
     /* Write 0 to p8-04 */
     val = GPIO_ID_PIN_P8_04;
     ioctl(fd, OFF_GPIO, &val);
-
-    sleep(1);
+    printf("GPIO P8_04 output value to 0\n");
 
     /* Read from p8-03 */
     val = GPIO_ID_PIN_P8_03;
     ioctl(fd, READ_GPIO, &val);
-    printf("Read GPIO Result : %u\n", val);
+    printf("Read GPIO P8_03 Result : %u\n", val);
 
     return 0;
 }
