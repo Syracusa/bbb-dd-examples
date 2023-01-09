@@ -4,6 +4,7 @@
 #include <linux/cdev.h>
 #include <linux/uaccess.h>
 #include <linux/interrupt.h>
+#include <linux/gpio.h>
 
 #include <linux/platform_data/gpio-omap.h>
 
@@ -337,41 +338,55 @@ static void disable_detect(int gpio_id)
 
 static void request_gpio_interrupt(int gpio_id, struct file* filp)
 {
-    int res;
+    int res, irq;
+    struct gpio_desc *irq_gpio = gpio_to_desc(gpio_id);
+
+    if (!irq_gpio){
+        printk("gpio_to_desc failed(%d)\n", gpio_id);
+        return;
+    }
+ 
+    irq = gpiod_to_irq(irq_gpio);
+    if (irq < 0){
+        printk("gpiod_to_irq failed(%d)\n", irq);
+        return;
+    } else {
+        printk("gpiod_to_irq success(%d)\n", irq);
+    }
+
+    res = request_threaded_irq(irq,
+                               gpio_interrupt_handler,
+                               NULL,
+                               IRQF_SHARED,
+                               "pinmux_ex",
+                               filp);
+
+    if (res == 0)
+    {
+        printk(KERN_NOTICE "Request IRQ %d SUCCESS\n", irq);
+    } 
+    else {
+        printk(KERN_NOTICE "Request IRQ %d FAIL\n", irq);
+    }
 
     /* Enable irq generation */
     setval_irqstatus_set(gpio_id, 1);
     enable_detect(gpio_id);
 
-    res = request_threaded_irq(BBB_GPIOINT1A,
-                               gpio_interrupt_handler,
-                               gpio_threaded_interrupt_handler,
-                               IRQF_SHARED,
-                               "pinmux_ex",
-                               filp);
+    // res = request_threaded_irq(BBB_GPIOINT1B,
+    //                            gpio_interrupt_handler,
+    //                            gpio_threaded_interrupt_handler,
+    //                            IRQF_SHARED,
+    //                            "pinmux_ex",
+    //                            filp);
 
-    if (res == 0)
-    {
-        printk(KERN_NOTICE "Request IRQ BBB_GPIOINT1A FAIL\n");
-    } 
-    else {
-        printk(KERN_NOTICE "Request IRQ BBB_GPIOINT1A SUCCESS\n");
-    }
-
-    res = request_threaded_irq(BBB_GPIOINT1B,
-                               gpio_interrupt_handler,
-                               gpio_threaded_interrupt_handler,
-                               IRQF_SHARED,
-                               "pinmux_ex",
-                               filp);
-
-    if (res == 0)
-    {
-        printk(KERN_NOTICE "Request IRQ BBB_GPIOINT1B FAIL\n");
-    }
-    else {
-        printk(KERN_NOTICE "Request IRQ BBB_GPIOINT1B SUCCESS\n");
-    }
+    // if (res == 0)
+    // {
+    //     printk(KERN_NOTICE "Request IRQ BBB_GPIOINT1B FAIL\n");
+    // }
+    // else {
+    //     printk(KERN_NOTICE "Request IRQ BBB_GPIOINT1B SUCCESS\n");
+    // }
 
 }
 
