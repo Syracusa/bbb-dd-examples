@@ -23,7 +23,15 @@
 ### Cape Expansion Header
 + https://vadl.github.io/beagleboneblack/2016/07/29/setting-up-bbb-gpio
 
+### Device Tree Overlay
++ https://github.com/beagleboard/bb.org-overlays/
+### ETC
++ https://elinux.org/Beagleboard:BeagleBoneBlack_Debian#U-Boot_Overlays
++ https://github.com/cdsteinkuehler/beaglebone-universal-io
 
++ https://engineering.stackexchange.com/questions/3980/in-a-device-tree-for-am335x-how-do-i-know-what-pinctrl-values-to-use
++ https://www.kernel.org/doc/html/v4.14/driver-api/pinctl.html
++ https://github.com/selsinork/beaglebone-black-pinmux
 ## GPIO example(./gpio_ex, ongoing)
 - Beaglebone black gpio control example(Character device driver).
 - No kernel gpio interface used.
