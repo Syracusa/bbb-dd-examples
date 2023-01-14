@@ -1,0 +1,1 @@
++ /arch/arm/boot/dts/am335x-boneblack-common.dtsi

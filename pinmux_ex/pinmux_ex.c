@@ -64,14 +64,6 @@ struct pinmux_ex_data
 
 struct pinmux_ex_data devs[PINMUX_EX_MAX_MINORS];
 
-char logbuffer[200];
-
-
-/* Function declaration */
-static void request_gpio_interrupt(int gpio_id, struct file* filp);
-
-/* ===== */
-
 static unsigned long get_gpio_base_addr(int gpio_id)
 {
     int gpio_regidx = gpio_id / 32;
@@ -190,7 +182,6 @@ static long pinmux_ex_ioctl(struct file* file,
             break;
         case GPIO_DIR_IN:
             gpio_direction_set(gpio_id, 1);
-            request_gpio_interrupt(gpio_id, file);
             break;
         default:
             break;
@@ -224,179 +215,6 @@ static void set_pinmux(unsigned long addr, int mmode)
 
     regval = ioread32(remapped);
     printk(KERN_NOTICE "BBB PINMUX AFTER : %p %x\n", remapped, regval);
-}
-
-static irqreturn_t gpio_threaded_interrupt_handler(int irq, void* dev_id)
-{
-    printk(KERN_NOTICE "GPIO THREADED INTERRUPT HANDLED. irq:%d dev_id:%p\n",
-           irq, dev_id);
-    return IRQ_HANDLED;
-}
-
-static irqreturn_t gpio_interrupt_handler(int irq, void* dev_id)
-{
-    /* You can't use printk in ISR. This is only test purpose... */
-    printk(KERN_NOTICE "GPIO INTERRUPT HANDLED. irq:%d dev_id:%p\n",
-           irq, dev_id);
-    return IRQ_HANDLED;
-}
-
-static void setval_rising_detect(int gpio_id, int val)
-{
-    /* Rising detect enable register */
-    u32 __iomem* rdttreg
-        = ioremap(get_gpio_base_addr(gpio_id) + OMAP4_GPIO_RISINGDETECT, 4);
-
-    int offset = gpio_id - ((gpio_id / 32) * 32);
-    u32 rdval = ioread32(rdttreg);
-
-    if (val == 0)
-    {
-        printk(KERN_NOTICE "CLEAR GPIO RISING DETECT %d\n", gpio_id);
-        rdval &= ~(1UL << offset);
-    }
-    else if (val == 1)
-    {
-        printk(KERN_NOTICE "SET GPIO RISING DETECT %d\n", gpio_id);
-        rdval |= 1UL << offset;
-    }
-    else
-    {
-        printk(KERN_NOTICE "UNABLE TO SET VAL %d TO RISING DETECT REG\n", val);
-        return;
-    }
-
-    iowrite32(rdval, rdttreg);
-}
-
-static void setval_falling_detect(int gpio_id, int val)
-{
-    /* Falling detect enable register */
-    u32 __iomem* fdttreg
-        = ioremap(get_gpio_base_addr(gpio_id) + OMAP4_GPIO_FALLINGDETECT, 4);
-
-    int offset = gpio_id - ((gpio_id / 32) * 32);
-    u32 fdval = ioread32(fdttreg);
-
-    if (val == 0)
-    {
-        printk(KERN_NOTICE "CLEAR GPIO FALLING DETECT %d\n", gpio_id);
-        fdval &= ~(1UL << offset);
-    }
-    else if (val == 1)
-    {
-        printk(KERN_NOTICE "SET GPIO FALLING DETECT %d\n", gpio_id);
-        fdval |= 1UL << offset;
-    }
-    else
-    {
-        printk(KERN_NOTICE "UNABLE TO SET VAL %d TO FALLING DETECT REG\n", val);
-        return;
-    }
-
-    iowrite32(fdval, fdttreg);
-}
-
-static void setval_irqstatus_set(int gpio_id, int val)
-{
-    u32 __iomem* target_reg;
-    int offset = gpio_id - ((gpio_id / 32) * 32);
-    u32 mask = 1UL << offset;
-
-    if (val == 0)
-    {
-        /* GPIO_IRQSTATUS_CLR_0 register */
-        target_reg = ioremap(get_gpio_base_addr(gpio_id) + OMAP4_GPIO_IRQSTATUSCLR0, 4);
-        printk(KERN_NOTICE "SET GPIO IRQSTATUSCLR0 %d\n", gpio_id);
-    }
-    else if (val == 1)
-    {
-        /* GPIO_IRQSTATUS_SET_0 register */
-        target_reg = ioremap(get_gpio_base_addr(gpio_id) + OMAP4_GPIO_IRQSTATUSSET0, 4);
-        printk(KERN_NOTICE "SET GPIO IRQSTATUSSET0 %d\n", gpio_id);
-    }
-    else
-    {
-        printk(KERN_NOTICE "UNABLE TO SET VAL %d TO IRQSTATUSSET\n", val);
-        return;
-    }
-
-    iowrite32(mask, target_reg);
-}
-
-static void enable_detect(int gpio_id)
-{
-    setval_rising_detect(gpio_id, 1);
-    setval_falling_detect(gpio_id, 1);
-}
-
-static void disable_detect(int gpio_id)
-{
-    setval_rising_detect(gpio_id, 0);
-    setval_falling_detect(gpio_id, 0);
-}
-
-static void request_gpio_interrupt(int gpio_id, struct file* filp)
-{
-    int res, irq;
-    struct gpio_desc *irq_gpio = gpio_to_desc(gpio_id);
-
-    if (!irq_gpio){
-        printk("gpio_to_desc failed(%d)\n", gpio_id);
-        return;
-    }
- 
-    irq = gpiod_to_irq(irq_gpio);
-    if (irq < 0){
-        printk("gpiod_to_irq failed(%d)\n", irq);
-        return;
-    } else {
-        printk("gpiod_to_irq success(%d)\n", irq);
-    }
-
-    res = request_threaded_irq(irq,
-                               gpio_interrupt_handler,
-                               NULL,
-                               IRQF_SHARED,
-                               "pinmux_ex",
-                               filp);
-
-    if (res == 0)
-    {
-        printk(KERN_NOTICE "Request IRQ %d SUCCESS\n", irq);
-    } 
-    else {
-        printk(KERN_NOTICE "Request IRQ %d FAIL\n", irq);
-    }
-
-    /* Enable irq generation */
-    setval_irqstatus_set(gpio_id, 1);
-    enable_detect(gpio_id);
-
-    // res = request_threaded_irq(BBB_GPIOINT1B,
-    //                            gpio_interrupt_handler,
-    //                            gpio_threaded_interrupt_handler,
-    //                            IRQF_SHARED,
-    //                            "pinmux_ex",
-    //                            filp);
-
-    // if (res == 0)
-    // {
-    //     printk(KERN_NOTICE "Request IRQ BBB_GPIOINT1B FAIL\n");
-    // }
-    // else {
-    //     printk(KERN_NOTICE "Request IRQ BBB_GPIOINT1B SUCCESS\n");
-    // }
-
-}
-
-static void free_gpio_interrupt(int gpio_id, struct file* filp)
-{
-    /* Disable irq generation */
-    setval_irqstatus_set(gpio_id, 0);
-    disable_detect(gpio_id);
-
-    free_irq(BBB_GPIOINT1A, filp);
 }
 
 ssize_t pinmux_ex_read(struct file* filp,

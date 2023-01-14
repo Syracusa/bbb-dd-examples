@@ -10,3 +10,4 @@ set(CMAKE_BUILD_TYPE Debug)
 # include_directories(include)
 
 add_executable(pinmux ./pinmux/pinmux.c)
+add_executable(interrupt ./interrupt/interrupt.c)

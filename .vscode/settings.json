@@ -23,7 +23,8 @@
         "tuple": "c",
         "type_traits": "c",
         "utility": "c",
-        "types.h": "c"
+        "types.h": "c",
+        "gpio.h": "c"
     },
     "cmake.sourceDirectory": "${workspaceFolder}/userapp"
 }

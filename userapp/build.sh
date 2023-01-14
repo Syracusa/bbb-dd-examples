@@ -6,3 +6,4 @@ make
 
 mkdir -p ../bin
 cp pinmux ../bin
+cp interrupt ../bin
